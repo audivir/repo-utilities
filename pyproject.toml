@@ -9,7 +9,7 @@ name = "repo-utilities"
 version = "0.0.3"
 dependencies = [
   "rattler-bindings @ git+https://www.github.com/audivir/rattler-bindings",
-  "dpkg-scanpackages-py @ git+https://www.github.com/tim25651/dpkg-scanpackages-py.git",
+  "dpkg-scanpackages-py @ git+https://www.github.com/audivir/dpkg-scanpackages-py.git",
   "jinja2",
   "requests",
   "psutil",
