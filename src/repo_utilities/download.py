@@ -106,6 +106,7 @@ def get_release_data(
     with GitHubSession(token, session) as gh_session:
         url = f"https://api.github.com/repos/{repo}/releases"
         response = gh_session.get(url)
+        response.raise_for_status()
 
     def _exclude_release(release: dict[str, Any]) -> bool:
         return exclude_prereleases and release["prerelease"]
