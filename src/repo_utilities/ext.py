@@ -22,6 +22,8 @@ class ExtensionError(Exception):
 COMPRESSION_EXTENSIONS = {
     ".tgz",
     ".tar.gz",
+    ".tar.zst",
+    ".tar.bz2",
     ".tbz2",
     ".bz2",
     ".tar",
@@ -29,6 +31,7 @@ COMPRESSION_EXTENSIONS = {
     ".xz",
     ".zip",
     ".7z",
+    ".zst",
 }
 
 ALLOWED_EXTENSIONS = COMPRESSION_EXTENSIONS | {

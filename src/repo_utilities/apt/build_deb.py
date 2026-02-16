@@ -25,6 +25,8 @@ from repo_utilities.gpg import TempGPG
 if TYPE_CHECKING:
     from collections.abc import Generator, Sequence
 
+    from repo_utilities.utils import ARCH, StrPath
+
 logger = logging.getLogger("repo_utilities")
 
 
@@ -45,7 +47,6 @@ LICENSES: TypeAlias = Literal[
     "expat",
     "custom",
 ]
-TYPES: TypeAlias = Literal["s", "i", "l", "p"]
 IGNORED_DIRS = {"__pycache__"}
 
 
@@ -61,7 +62,7 @@ class BuildConf:
     install_dir: StrPath = Path("/")
     email: str | None = field(default_factory=lambda: os.getenv("APTMAIL"))
     name: str | None = field(default_factory=lambda: os.getenv("APTNAME"))
-    type: TYPES = "i"
+    arch: ARCH = "all"
     compression: int = 1
     jobs: int = 0
     output: StrPath = Path()
@@ -140,7 +141,7 @@ def find_install_files(
     return found_files
 
 
-def write_install_file(
+def write_install_file(  # noqa: C901
     files: Sequence[StrPath],
     source_dir: StrPath,
     root_dir: StrPath | None = None,
@@ -168,13 +169,15 @@ def write_install_file(
     def _is_parent_in_set(child: Path, _set: set[Path]) -> bool:
         if Path("/") in _set or Path() in _set:  # root dir or current dir
             raise ValueError("Root directory or current directory is in set")
-        if child.parent == child: # . or /
+        if child.parent == child:  # . or /
             return False
         if child.parent in _set:
             return True
         return _is_parent_in_set(child.parent, _set)
 
-    fixed_files = {parent for parent in fixed_files if not _is_parent_in_set(parent, fixed_files)}
+    fixed_files = {
+        parent for parent in fixed_files if not _is_parent_in_set(parent, fixed_files)
+    }
 
     logger.debug("Filtered fixed files: %s", fixed_files)
 
@@ -208,7 +211,7 @@ def dh_make(
     name: str | None = None,
     email: str | None = None,
     license: LICENSES | None = None,  # noqa:A002
-    type: TYPES = "i",  # noqa: A002
+    arch: ARCH = "all",
     compression: int = 1,
     jobs: int = 0,
 ) -> None:
@@ -233,6 +236,7 @@ def dh_make(
     if license:
         args.extend(["-c", license])
 
+    type = "i" if arch == "all" else "s"  # noqa: A001
     args.append(f"-{type}")
 
     logger.debug(args)
@@ -254,6 +258,7 @@ def update_control(
     depends: str | None,
     homepage: str | None,
     desc: str | None,
+    arch: ARCH,
 ) -> None:
     """Update the control file with additional information."""
     logger.debug("Updating control file...")
@@ -263,6 +268,8 @@ def update_control(
     control_file = debian_dir / "control"
 
     content = control_file.read_text("utf-8")
+
+    content = content.replace("Architecture: any", f"Architecture: {arch}")
 
     if depends:
         # Depends: {{ insert here }}, ${shlibs:Depends}, ${misc:Depends}
@@ -312,6 +319,7 @@ def dpkg_buildpackage(
     source_dir: StrPath,
     compression: int = 1,
     jobs: int = 0,
+    arch: ARCH = "all",
     priv_file: StrPath | None = None,
 ) -> None:
     """Build the package."""
@@ -321,6 +329,9 @@ def dpkg_buildpackage(
     os.environ["DPKG_DEB_THREADS_MAX"] = str(jobs)
 
     cmd_args = ["dpkg-buildpackage", f"-j{jobs}"]
+
+    if arch != "all":
+        cmd_args.append(f"-a{arch}")
 
     if not priv_file:
         logger.debug("Building without signing...")
@@ -400,12 +411,14 @@ def unpack_source(
         output.mkdir()
         binary_path.mkdir()
         shutil.copy(source, binary_path / output_name)
-    elif mime_type in {"tar", "gzip", "bzip2"}:
+    elif mime_type in {"tar", "gzip", "bzip2", "zstd"}:
         cmd_args = ["tar"]
         if mime_type == "gzip":
             cmd_args.extend(["-I", "pigz"])
         elif mime_type == "bzip2":
             cmd_args.extend(["-I", "pbzip2"])
+        elif mime_type == "zstd":
+            cmd_args.extend(["-I", "zstd"])
         for pattern in exclude:
             cmd_args.extend(["--exclude", pattern])
         cmd_args.extend(["-xvf", str(source), "-C", str(output)])
@@ -437,12 +450,14 @@ def build_deb(args: BuildConf) -> None:
         args.name,
         args.email,
         args.license,
-        args.type,
+        args.arch,
         args.compression,
         args.jobs,
     )
 
-    update_control(source_dir, args.package, args.depends, args.homepage, args.desc)
+    update_control(
+        source_dir, args.package, args.depends, args.homepage, args.desc, args.arch
+    )
 
     files = find_install_files(source_dir, root_dir)
     allowed_dirs = write_install_file(files, source_dir, root_dir, install_dir)
@@ -483,6 +498,6 @@ def build_deb(args: BuildConf) -> None:
 
     disable_debhelper_scripts(debian_dir, args.disable)
 
-    dpkg_buildpackage(source_dir, args.compression, args.jobs, args.key)
+    dpkg_buildpackage(source_dir, args.compression, args.jobs, args.arch, args.key)
 
     cleanup(source_dir, args.package, args.version)

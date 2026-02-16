@@ -149,6 +149,8 @@ def create_packages(
         if isinstance(previous, str | PathLike):
             previous = (previous,)
         previous = tuple(str(Path(p).resolve()) for p in previous if Path(p).is_file())
+        if not previous:  # tuple != None but evals as false
+            previous = None
 
     with change_cwd(repo):
         DpkgScanPackages(
