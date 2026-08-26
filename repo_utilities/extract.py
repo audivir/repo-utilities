@@ -11,12 +11,12 @@ import fnmatch
 import logging
 import tarfile
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from repo_utilities.ext import filter_exts
 
 if TYPE_CHECKING:
-    from repo_utilities.utils import StrPath
+    from _typeshed import StrPath
 
 logger = logging.getLogger("repo_utilities")
 
@@ -29,7 +29,7 @@ class DecompressionError(FileManupilationError):
     """Decompression failed."""
 
 
-def _get_compression_mode(src: StrPath) -> str:
+def _get_compression_mode(src: StrPath) -> Literal["r", "r:gz", "r:bz2"]:
     """Return the compression mode for a given tarball.
 
     If suffix is .tgz or .tar.gz, return 'r:gz'.
@@ -53,15 +53,13 @@ def _get_compression_mode(src: StrPath) -> str:
     raise DecompressionError(f"Unknown compression mode for {src}")
 
 
-def _is_safe_path(path: StrPath) -> bool:
+def is_safe_path(path: StrPath) -> bool:
     """Check if the path is safe to extract."""
     path = Path(path)
     return not (path.is_absolute() or ".." in path.parts)
 
 
-def extract(
-    src: StrPath, target: StrPath | None = None, glob: str | None = None
-) -> list[Path]:
+def extract(src: StrPath, target: StrPath | None = None, glob: str | None = None) -> list[Path]:
     """Extract the tar file at `src` to `target`.
 
     Use the parent directory of `src` if `target` is None.
@@ -77,7 +75,7 @@ def extract(
     with tarfile.open(src, mode) as tar:
 
         def _match(name: str) -> bool:
-            if not _is_safe_path(name):
+            if not is_safe_path(name):
                 return False
 
             if glob is None:

@@ -15,15 +15,17 @@ from rattler_bindings import PLATFORM, optimized_rattler_build
 from requests import Response, Session
 
 from repo_utilities.temp import TemporaryDirectory
-from repo_utilities.utils import ARCH, StrPath, symlinker
+from repo_utilities.utils import ARCH, symlinker
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from _typeshed import StrPath
+
 
 logger = logging.getLogger("repo_utilities")
 
-ARCH_MAP: dict[ARCH, PLATFORM] = {"amd64": "linux-64"}  # TODO: other arches
+ARCH_MAP: dict[ARCH, PLATFORM] = {"amd64": "linux-64"}  # TODO(tim25651): other arches
 
 
 def build_channel(channel: StrPath, pkgs: Sequence[StrPath], arch: ARCH) -> None:
@@ -52,14 +54,14 @@ def build_channel(channel: StrPath, pkgs: Sequence[StrPath], arch: ARCH) -> None
         target_pkg.unlink(missing_ok=True)
         symlinker(pkg, target_pkg)
 
-    conda_index.api.update_index(channel)
+    conda_index.api.update_index(channel)  # type: ignore[no-untyped-call]
 
     for file in channel.glob("**/*.json"):
         content = json.loads(file.read_text("utf-8"))
         file.write_text(json.dumps(content, indent=4), "utf-8")
 
 
-def build_pkg(
+def build_pkg(  # noqa: PLR0913, PLR0917
     target_dir: StrPath,
     recipe: StrPath,
     arch: ARCH,
@@ -101,7 +103,7 @@ def build_pkg(
                 )
 
         logger.info("Running rattler-build...")
-        return optimized_rattler_build(  # type: ignore[no-any-return]
+        return optimized_rattler_build(
             recipe,
             target_dir,
             clean_bld_cache=cleanup,

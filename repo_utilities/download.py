@@ -16,10 +16,9 @@ from requests import Session
 from repo_utilities.ext import filter_exts
 
 if TYPE_CHECKING:
+    from _typeshed import StrPath
     from playwright._impl._sync_base import EventContextManager, EventInfo
     from playwright.sync_api import Browser, Download
-
-    from repo_utilities.utils import StrPath
 
 logger = logging.getLogger("repo_utilities")
 
@@ -121,9 +120,7 @@ def get_release_data(
     }
 
 
-def find_asset_by_tag(
-    release_data: dict[str, list[str]], pattern: str, tag: str
-) -> str | None:
+def find_asset_by_tag(release_data: dict[str, list[str]], pattern: str, tag: str) -> str | None:
     """Find an asset by tag in the GitHub repo.
 
     Args:
@@ -149,9 +146,7 @@ def find_asset_by_tag(
     return matches.pop()
 
 
-def find_recent_asset(
-    release_data: dict[str, list[str]], pattern: str
-) -> tuple[str, str]:
+def find_recent_asset(release_data: dict[str, list[str]], pattern: str) -> tuple[str, str]:
     """Find the most recent tag and asset that matches the pattern.
 
     Args:
@@ -225,7 +220,7 @@ def download_direct(
     session = session or Session()
 
     # filename is the last part of the URL if not provided
-    name = name or url.split("/")[-1]
+    name = name or url.rsplit("/", maxsplit=1)[-1]
 
     logger.info("Downloading %s directly...", name)
 
@@ -245,7 +240,7 @@ def download_direct(
     return target_path
 
 
-def _get_pw_download(
+def get_pw_download(
     browser: Browser, urls: tuple[str, ...], dl_timeout: int = 2000, timeout: int = 2000
 ) -> Download:
     """Get playwright download content from a URL and >-separated clicks.
@@ -312,7 +307,7 @@ def _get_pw_download(
     return _return_download_info(download_info)
 
 
-def download_via_browser(
+def download_via_browser(  # noqa: PLR0913, PLR0917
     browser: Browser,
     urls: tuple[str, ...],
     target: StrPath | None,
@@ -342,7 +337,7 @@ def download_via_browser(
     download: Download | None = None
     for retry in range(1, retries + 1):  # retries
         try:
-            download = _get_pw_download(browser, urls, retry * timeout, retry * timeout)
+            download = get_pw_download(browser, urls, retry * timeout, retry * timeout)
             break
         except pw_errors.TimeoutError as e:
             err = e

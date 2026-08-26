@@ -21,7 +21,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from repo_utilities.utils import ARCH, StrPath
+    from _typeshed import StrPath
+
+    from repo_utilities.utils import ARCH
 
 
 @dataclass(frozen=True)
@@ -38,7 +40,7 @@ class MetaConf(argparse.Namespace):
     arch: ARCH = "all"
 
 
-def build_meta(
+def build_meta(  # noqa: PLR0913, PLR0917
     output: StrPath,
     package: str,
     dependencies: list[str],
@@ -68,7 +70,7 @@ def build_meta(
         desc = """<insert up to 60 chars description>
  <insert long description, indented with spaces>"""
 
-    dest_file = output / f"{package}_{version}_{arch}.deb"
+    dest_file = Path(output) / f"{package}_{version}_{arch}.deb"
 
     with tempfile.TemporaryDirectory() as work_dir:
         wd = Path(work_dir)

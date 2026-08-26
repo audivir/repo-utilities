@@ -16,13 +16,13 @@ from repo_utilities import TemporaryDirectory, git
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from repo_utilities.temp import StrPath
+    from _typeshed import StrPath
 
 
 logger = logging.getLogger("repo_utilities")
 
 
-def _read_version(path: StrPath) -> Version:
+def read_version(path: StrPath) -> Version:
     """Read the version from a file."""
     match = re.search(r"version\s+\"([^\"]+)\"", Path(path).read_text("utf-8"))
     if match is None:
@@ -70,9 +70,9 @@ def build_tap(repo: StrPath, casks: Sequence[Path], formulae: Sequence[Path]) ->
                 if file.suffix != ".rb":
                     raise ValueError(f"Unexpected file in {pkgs}: {file}")
 
-                new_version = _read_version(file)
+                new_version = read_version(file)
                 if file.name in existing_files:
-                    old_version = _read_version(dest / file.name)
+                    old_version = read_version(dest / file.name)
                 else:
                     old_version = Version("0.0.0")
 

@@ -1,2 +1,2 @@
-cls  # unused variable (src/repo_utilities/temp.py:59)
-_.status  # unused attribute (src/repo_utilities/gpg.py:40)
+cls  # unused variable (repo_utilities/temp.py:59)
+_.status  # unused attribute (repo_utilities/gpg.py:40)

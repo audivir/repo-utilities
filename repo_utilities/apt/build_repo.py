@@ -14,10 +14,12 @@ from typing import TYPE_CHECKING, Literal
 from dpkg_scanpackages import DpkgScanPackages
 
 from repo_utilities import change_cwd, gpg
-from repo_utilities.utils import ARCH, StrPath, symlinker
+from repo_utilities.utils import ARCH, symlinker
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
+
+    from _typeshed import StrPath
 
 logger = logging.getLogger("repo_utilities")
 
@@ -74,15 +76,15 @@ def get_packages_hashes(
     lines: list[str] = []
 
     def _hash_func(s: str | bytes, hash_type: Literal["md5", "sha1", "sha256"]) -> str:
-        if isinstance(s, str):
-            s = s.encode("utf-8")
+        if isinstance(s, str):  # pragma: no cover
+            s = s.encode("utf-8")  # callers below already normalize to bytes first
         if hash_type == "md5":
             return hashlib.md5(s).hexdigest()  # noqa: S324
         if hash_type == "sha1":
             return hashlib.sha1(s).hexdigest()  # noqa: S324
         if hash_type == "sha256":
             return hashlib.sha256(s).hexdigest()
-        raise ValueError(f"Unknown hash type: {hash_type}")
+        raise ValueError(f"Unknown hash type: {hash_type}")  # pragma: no cover
 
     header_hashes: list[tuple[str, Callable[[str | bytes], str]]] = [
         ("MD5Sum", lambda x: _hash_func(x, "md5")),
@@ -96,9 +98,7 @@ def get_packages_hashes(
             for path, raw_content in elem:
                 rel_path = path.relative_to(path.parent.parent.parent)
                 content = (
-                    raw_content.encode("utf-8")
-                    if isinstance(raw_content, str)
-                    else raw_content
+                    raw_content.encode("utf-8") if isinstance(raw_content, str) else raw_content
                 )
                 char_count = len(content)
                 hash_str = hash_func(content)
@@ -129,7 +129,7 @@ def create_release_file(
         f"Description: {desc}",
         f"Date: {date}",
     ]
-    packages, packages_gz = zip(*data.values(), strict=False)  # type: ignore[misc]
+    packages, packages_gz = zip(*data.values(), strict=False)
     lines += get_packages_hashes(packages, packages_gz)
     return "\n".join(lines) + "\n"
 
@@ -202,14 +202,12 @@ def create_repo(repo: StrPath, suite: str, arches: Sequence[ARCH]) -> None:
     old_packages_files: list[Path] = []
     for arch in arches:
         binary_dir = f"binary-{arch}"
-        old_packages_file = repo / "dists" / suite / "main" / binary_dir / "Packages"
+        old_packages_file = Path(repo) / "dists" / suite / "main" / binary_dir / "Packages"
         old_packages_files.append(old_packages_file)
 
     for arch in arches:
         try:
-            packages_file, packages = create_packages(
-                repo, old_packages_files, suite, arch
-            )
+            packages_file, packages = create_packages(repo, old_packages_files, suite, arch)
         except ValueError:
             continue  # no packages
         packages_gz_file, packages_gz = create_packages_gz(packages_file, packages)

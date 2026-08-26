@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from repo_utilities.utils import StrPath
+    from _typeshed import StrPath
 
 
 class ExtensionError(Exception):
@@ -75,9 +75,7 @@ def filter_exts(path_or_suffixes: StrPath | list[str]) -> list[str]:
 
     remaining = suffixes[: len(suffixes) - len(filtered)]
     if set(remaining) & ALLOWED_EXTENSIONS:
-        raise ExtensionError(
-            f"An allowed extensions preceeds a disallowed one: {path_or_suffixes}"
-        )
+        raise ExtensionError(f"An allowed extensions preceeds a disallowed one: {path_or_suffixes}")
 
     return filtered
 

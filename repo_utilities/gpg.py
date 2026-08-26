@@ -11,19 +11,19 @@ import logging
 import os
 import subprocess
 from io import StringIO
-from os import PathLike
 from pathlib import Path
 from subprocess import DEVNULL
-from typing import TypeAlias
+from typing import TYPE_CHECKING
 
 import gnupg
 from gnupg._parsers import Sign
 
 from repo_utilities.temp import TemporaryDirectory
 
-logger = logging.getLogger("repo_utilities")
+if TYPE_CHECKING:
+    from _typeshed import StrPath
 
-StrPath: TypeAlias = str | PathLike[str]
+logger = logging.getLogger("repo_utilities")
 
 
 class KeyCreationError(Exception):
@@ -34,7 +34,7 @@ class KeyCreationError(Exception):
 _orig_handle_status = Sign._handle_status  # noqa: SLF001
 
 
-def _patched_handle_status(self: Sign, key: str, value: str) -> None:
+def patched_handle_status(self: Sign, key: str, value: str) -> None:
     """Monkeypatch to handle the status of GPG operations."""
     if key == "WARNING":
         self.status = key.replace("_", " ").lower()
@@ -42,10 +42,10 @@ def _patched_handle_status(self: Sign, key: str, value: str) -> None:
         _orig_handle_status(self, key, value)
 
 
-Sign._handle_status = _patched_handle_status  # noqa: SLF001
+Sign._handle_status = patched_handle_status  # noqa: SLF001
 
 
-class GPG2(gnupg.GPG):
+class GPG2(gnupg.GPG):  # type: ignore[misc]
     """GPG class with additional methods."""
 
     def import_priv_key(self, path: StrPath) -> None:
@@ -58,9 +58,7 @@ class GPG2(gnupg.GPG):
             stderr=DEVNULL,
         )
 
-    def export_key(
-        self, output: StrPath, secret: bool = False, armor: bool = True
-    ) -> None:
+    def export_key(self, output: StrPath, secret: bool = False, armor: bool = True) -> None:
         """Export a public key to a file."""
         environ = os.environ.copy()
         environ["GNUPGHOME"] = str(self.homedir)
@@ -202,9 +200,7 @@ def sign_repo(
 
         # Sign the InRelease file
         # --clearsign: make a clear text signature
-        gpg.sign_file(
-            release, release.parent / "InRelease", detach=False, clearsign=True
-        )
+        gpg.sign_file(release, release.parent / "InRelease", detach=False, clearsign=True)
 
         gpg.export_key(pub_file, secret=False, armor=False)
 

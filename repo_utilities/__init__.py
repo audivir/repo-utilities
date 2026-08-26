@@ -24,6 +24,8 @@ from repo_utilities.utils import (
     symlinker,
 )
 
+__version__ = "0.0.4"
+
 __all__ = [
     "ALLOWED_EXTENSIONS",
     "ARCH",

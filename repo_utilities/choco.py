@@ -16,10 +16,12 @@ import psutil
 from ruamel.yaml import YAML
 
 from repo_utilities.temp import TemporaryDirectory
-from repo_utilities.utils import StrPath, symlinker
+from repo_utilities.utils import symlinker
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from _typeshed import StrPath
 
 
 logger = logging.getLogger("repo_utilities")
@@ -88,9 +90,7 @@ def build_choco(repo: StrPath, pkgs: Sequence[StrPath]) -> None:
     with (repo / "app.yaml").open("w", encoding="utf-8") as f:
         yaml = YAML(typ="rt")
         yaml.dump(CHOCO_SERVER_APP_YAML, f)
-    (repo / "packages.json").write_text(
-        json.dumps(CHOCO_SERVER_PACKAGE_JSON, indent=4), "utf-8"
-    )
+    (repo / "packages.json").write_text(json.dumps(CHOCO_SERVER_PACKAGE_JSON, indent=4), "utf-8")
 
 
 def pack_pkg(

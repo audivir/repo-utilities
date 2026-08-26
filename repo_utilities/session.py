@@ -24,7 +24,7 @@ class CacheSession(Session):
         super().__init__()
         self.cache: dict[str, Response] = {}
 
-    @override  # type: ignore[misc]
+    @override
     def get(  # type: ignore[override,unused-ignore]
         self, url: str, stream: bool | None = False, **kwargs: Any
     ) -> Response:

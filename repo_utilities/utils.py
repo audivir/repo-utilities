@@ -6,15 +6,14 @@ import hashlib
 import logging
 import os
 from contextlib import contextmanager
-from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, TypeAlias
 
 if TYPE_CHECKING:
     from collections.abc import Generator
-logger = logging.getLogger("repo_utilities")
 
-StrPath: TypeAlias = str | PathLike[str]
+    from _typeshed import StrPath
+logger = logging.getLogger("repo_utilities")
 
 EMPTY_HASH = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 FOUR_MB = 4 * 1024 * 1024

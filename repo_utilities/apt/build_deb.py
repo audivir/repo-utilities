@@ -1,7 +1,6 @@
 # %%
 """Find links and binaries in a debian source tree."""
 
-# ruff: noqa: T201
 from __future__ import annotations
 
 import getpass
@@ -12,7 +11,6 @@ import shutil
 import socket
 import subprocess
 from dataclasses import dataclass, field
-from os import PathLike
 from pathlib import Path
 from subprocess import DEVNULL
 from typing import TYPE_CHECKING, Literal, TypeAlias
@@ -25,14 +23,15 @@ from repo_utilities.gpg import TempGPG
 if TYPE_CHECKING:
     from collections.abc import Generator, Sequence
 
-    from repo_utilities.utils import ARCH, StrPath
+    from _typeshed import StrPath
+
+    from repo_utilities.utils import ARCH
 
 logger = logging.getLogger("repo_utilities")
 
 
 DEBUG = False
 
-StrPath: TypeAlias = str | PathLike[str]
 LICENSES: TypeAlias = Literal[
     "apache",
     "artistic",
@@ -107,14 +106,10 @@ def extract_homepage_desc(cask_or_formula: str) -> tuple[str | None, str | None]
     return None, None
 
 
-def _non_debian_files(source_dir: StrPath) -> Generator[Path]:
+def non_debian_files(source_dir: StrPath) -> Generator[Path]:
     """Find all files/folders which are not in the debian control folders."""
     source_dir = Path(source_dir).resolve()
-    subdirs = [
-        p
-        for p in source_dir.iterdir()
-        if p.is_dir() and p.name not in {"debian", "DEBIAN"}
-    ]
+    subdirs = [p for p in source_dir.iterdir() if p.is_dir() and p.name not in {"debian", "DEBIAN"}]
     subfiles = [p for p in source_dir.iterdir() if p.is_file()]
 
     yield from subfiles
@@ -122,16 +117,14 @@ def _non_debian_files(source_dir: StrPath) -> Generator[Path]:
         yield from subdir.rglob("*")
 
 
-def find_install_files(
-    source_dir: StrPath, root_dir: StrPath | None = None
-) -> list[Path]:
+def find_install_files(source_dir: StrPath, root_dir: StrPath | None = None) -> list[Path]:
     """Find all files in the source_dir."""
     logger.debug("Collecting install files...")
     found_files: list[Path] = []
     source_dir = Path(source_dir)
     root_dir = root_dir or source_dir
     root_dir = Path(root_dir)
-    for file in _non_debian_files(root_dir):
+    for file in non_debian_files(root_dir):
         if file.parent == source_dir and file.suffix == ".desktop":
             continue
         if file.parent == source_dir / "icons":
@@ -162,12 +155,14 @@ def write_install_file(  # noqa: C901
     for parent, subfiles in file_hierarchy.items():
         if parent.name in IGNORED_DIRS:  # like __pycache__
             continue
-        if not subfiles:  # no files in this directory
+        if not subfiles:  # pragma: no cover
+            # setdefault(parent, []).append(file) above means every entry is non-empty.
             continue
         fixed_files.add(parent)
 
     def _is_parent_in_set(child: Path, _set: set[Path]) -> bool:
-        if Path("/") in _set or Path() in _set:  # root dir or current dir
+        if Path("/") in _set or Path() in _set:  # pragma: no cover
+            # Only reachable if the source tree's resolved root is "/" or cwd.
             raise ValueError("Root directory or current directory is in set")
         if child.parent == child:  # . or /
             return False
@@ -175,15 +170,11 @@ def write_install_file(  # noqa: C901
             return True
         return _is_parent_in_set(child.parent, _set)
 
-    fixed_files = {
-        parent for parent in fixed_files if not _is_parent_in_set(parent, fixed_files)
-    }
+    fixed_files = {parent for parent in fixed_files if not _is_parent_in_set(parent, fixed_files)}
 
     logger.debug("Filtered fixed files: %s", fixed_files)
 
-    allowed_dirs = {
-        install_dir / parent.relative_to(root_dir) for parent in file_hierarchy
-    }
+    allowed_dirs = {install_dir / parent.relative_to(root_dir) for parent in file_hierarchy}
 
     install_file = source_dir / "debian" / "install"
     with install_file.open("w") as f:
@@ -206,7 +197,7 @@ def copy_additional_files(source_dir: StrPath, additional_dir: StrPath) -> None:
     shutil.copytree(additional_dir, debian_dir, dirs_exist_ok=True)
 
 
-def dh_make(
+def dh_make(  # noqa: PLR0913, PLR0917
     source_dir: StrPath,
     name: str | None = None,
     email: str | None = None,
@@ -252,7 +243,7 @@ def dh_make(
         file.unlink()
 
 
-def update_control(
+def update_control(  # noqa: PLR0913, PLR0917
     source_dir: StrPath,
     package: str,
     depends: str | None,
@@ -282,7 +273,7 @@ def update_control(
 
     if not homepage or not desc:
         raise ValueError(
-            "Homepage and Description are required and could not be extracted from Homebrew."  # noqa: E501
+            "Homepage and Description are required and could not be extracted from Homebrew."
         )
 
     content = content.replace(
@@ -347,9 +338,7 @@ def dpkg_buildpackage(
         subprocess.check_call(cmd_args, cwd=source_dir)  # noqa: S603
 
 
-def disable_debhelper_scripts(
-    debian_dir: StrPath, scripts_to_disable: list[str]
-) -> None:
+def disable_debhelper_scripts(debian_dir: StrPath, scripts_to_disable: list[str]) -> None:
     """Disable debhelper scripts."""
     rules = Path(debian_dir) / "rules"
     with rules.open("a") as rules_file:
@@ -358,7 +347,7 @@ def disable_debhelper_scripts(
             rules_file.write(disable_line)
 
 
-def add_desktop_file(
+def add_desktop_file(  # noqa: PLR0913, PLR0917
     source_dir: StrPath,
     package: str,
     version: str,
@@ -455,9 +444,7 @@ def build_deb(args: BuildConf) -> None:
         args.jobs,
     )
 
-    update_control(
-        source_dir, args.package, args.depends, args.homepage, args.desc, args.arch
-    )
+    update_control(source_dir, args.package, args.depends, args.homepage, args.desc, args.arch)
 
     files = find_install_files(source_dir, root_dir)
     allowed_dirs = write_install_file(files, source_dir, root_dir, install_dir)
@@ -476,8 +463,7 @@ def build_deb(args: BuildConf) -> None:
 
         if file.parent not in allowed_dirs:
             raise ValueError(
-                f"Executable {file} is outside of allowed directories:"
-                f" {allowed_dirs_str}"
+                f"Executable {file} is outside of allowed directories: {allowed_dirs_str}"
             )
         links.append(f"{file} {dst}")
 
@@ -492,9 +478,7 @@ def build_deb(args: BuildConf) -> None:
                 f"Desktop executable {desktop_exec} is outside of allowed directories:"
                 f" {allowed_dirs_str}"
             )
-        add_desktop_file(
-            source_dir, args.package, args.version, template, desktop_exec, icon
-        )
+        add_desktop_file(source_dir, args.package, args.version, template, desktop_exec, icon)
 
     disable_debhelper_scripts(debian_dir, args.disable)
 

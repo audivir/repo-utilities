@@ -11,12 +11,12 @@ from typing import TYPE_CHECKING
 from typing_extensions import override
 
 if TYPE_CHECKING:
-    from repo_utilities.utils import StrPath
+    from _typeshed import StrPath
 
 logger = logging.getLogger("repo_utilities")
 
 
-class TemporaryDirectory(tempfile.TemporaryDirectory):
+class TemporaryDirectory(tempfile.TemporaryDirectory[str]):
     """A temporary directory context manager.
 
     With `TMPDIR_DEBUG` set, the directory won't be removed.
@@ -41,12 +41,10 @@ class TemporaryDirectory(tempfile.TemporaryDirectory):
         self.path = Path(self.name)
 
         if self.debug:
-            logger.warning(
-                "Temporary directory created and won't be removed: %s", self.name
-            )
+            logger.warning("Temporary directory created and won't be removed: %s", self.name)
 
     @override
-    def __enter__(self) -> Path:
+    def __enter__(self) -> Path:  # type: ignore[override]
         """Changed from `str` to `Path`.
 
         Returns:
@@ -55,9 +53,7 @@ class TemporaryDirectory(tempfile.TemporaryDirectory):
         return self.path
 
     @classmethod
-    def _cleanup(
-        cls, name: str, warn_message: str, ignore_errors: bool = False
-    ) -> None:
+    def _cleanup(cls, name: str, warn_message: str, ignore_errors: bool = False) -> None:
         if bool(os.getenv("TMPDIR_DEBUG")):
             logger.warning("Temporary directory %s not removed.", name)
         else:

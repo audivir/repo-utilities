@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from repo_utilities.utils import StrPath
+    from _typeshed import StrPath
 
 
 def exec_cmd(args: Sequence[str], cwd: StrPath) -> None:
