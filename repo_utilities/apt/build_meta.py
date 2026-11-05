@@ -89,6 +89,6 @@ Description: {desc}
 """
         control.write_text(content, "utf-8")
 
-        subprocess.check_call(  # work_dir is provided by tempfile, args.name is sanitized # noqa: S603,E501
+        subprocess.check_call(  # work_dir is provided by tempfile, args.name is sanitized # noqa: S603
             ["/usr/bin/dpkg-deb", "--build", work_dir, str(dest_file)]
         )
